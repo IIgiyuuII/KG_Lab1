@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>лаба 1 — примитивы WebGL</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+
+    <script id="vertex-shader" type="x-shader/x-vertex">
+        attribute vec2 a_position;
+        attribute vec3 a_color;
+        varying vec3 v_color;
+       
+        void main() {
+            gl_Position = vec4(a_position, 0.0, 1.0);
+            gl_PointSize = 5.0;
+            v_color = a_color;
+        }
+    </script>
+
+    <script id="fragment-shader" type="x-shader/x-fragment">
+        precision mediump float;
+        varying vec3 v_color;
+       
+        void main() {
+            gl_FragColor = vec4(v_color, 1.0);
+        }
+    </script>
+
+    <script>
+        function initWebGL() {
+            const canvas = document.getElementById('canvas');
+            const gl = canvas.getContext('webgl');
+            if (!gl) return null;
+
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            gl.viewport(0, 0, canvas.width, canvas.height);
+            return gl;
+        }
+
+        function createShader(gl, source, type) {
+            const shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            return shader;
+        }
+
+        function createProgram(gl, vertexSource, fragmentSource) {
+            const vertexShader   = createShader(gl, vertexSource, gl.VERTEX_SHADER);
+            const fragmentShader = createShader(gl, fragmentSource, gl.FRAGMENT_SHADER);
+            const program = gl.createProgram();
+            gl.attachShader(program, vertexShader);
+            gl.attachShader(program, fragmentShader);
+            gl.linkProgram(program);
+            return program;
+        }
+
+        function init() {
+            const gl = initWebGL();
+            if (!gl) return;
+
+            const vertexSource   = document.getElementById('vertex-shader').text;
+            const fragmentSource = document.getElementById('fragment-shader').text;
+
+            const program = createProgram(gl, vertexSource, fragmentSource);
+            gl.useProgram(program);
+
+            const posLoc = gl.getAttribLocation(program, 'a_position');
+            const colLoc = gl.getAttribLocation(program, 'a_color');
+
+            gl.enableVertexAttribArray(posLoc);
+            gl.enableVertexAttribArray(colLoc);
+
+            gl.clearColor(1.0, 1.0, 1.0, 1.0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+
+            // ────────────────────────────────────────────────
+            // 1. Квадрат (TRIANGLE_STRIP) — ярко-фиолетовый → cyan
+            const squareVertices = new Float32Array([
+                -0.75, 0.75, 0.0, 0.8, 1.0,   // чуть меньше и сдвинут
+                -0.45, 0.75, 0.0, 0.8, 1.0,
+                -0.75, 0.45, 0.0, 0.8, 1.0,
+                -0.45, 0.45, 0.0, 0.8, 1.0
+            ]);
+            const squareBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, squareBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, squareVertices, gl.STATIC_DRAW);
+            gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 20, 0);
+            gl.vertexAttribPointer(colLoc, 3, gl.FLOAT, false, 20, 8);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+            // ────────────────────────────────────────────────
+            // 2. Треугольник (TRIANGLES) — ярко-оранжевый
+            const triangleVertices = new Float32Array([
+                -0.25, 0.35, 1.0, 0.0, 0.0,
+                 0.05, 0.35, 0.0, 1.0, 0.0,
+                -0.10, 0.75, 0.0, 0.0, 1.0
+            ]);
+            const triangleBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, triangleBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, triangleVertices, gl.STATIC_DRAW);
+            gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 20, 0);
+            gl.vertexAttribPointer(colLoc, 3, gl.FLOAT, false, 20, 8);
+            gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+            // ────────────────────────────────────────────────
+            // 3. Точки (POINTS) — сдвинуты левее
+            const pointVertices = new Float32Array([
+                -0.98, 0.2,  0.0, 0.0, 1.0,
+                -0.93, 0.25, 0.0, 0.0, 1.0,
+                -0.93, 0.15, 0.0, 0.0, 1.0,
+                -0.83, 0.25, 0.0, 0.0, 1.0,
+                -0.83, 0.15, 0.0, 0.0, 1.0
+            ]);
+            const pointsBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, pointsBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, pointVertices, gl.STATIC_DRAW);
+            gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 20, 0);
+            gl.vertexAttribPointer(colLoc, 3, gl.FLOAT, false, 20, 8);
+            gl.drawArrays(gl.POINTS, 0, 5);
+
+            // ────────────────────────────────────────────────
+            // 4. LINES
+            const linesVertices = new Float32Array([
+                -0.65, 0.3,  0.0, 0.0, 1.0,
+                -0.55, 0.15, 0.0, 0.0, 1.0,
+                -0.65, 0.15, 0.0, 0.0, 1.0,
+                -0.55, 0.3,  0.0, 0.0, 1.0,
+                -0.54, 0.29, 0.0, 0.0, 1.0,
+                -0.55, 0.23, 0.0, 0.0, 1.0
+            ]);
+            const linesBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, linesBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, linesVertices, gl.STATIC_DRAW);
+            gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 20, 0);
+            gl.vertexAttribPointer(colLoc, 3, gl.FLOAT, false, 20, 8);
+            gl.drawArrays(gl.LINES, 0, 6);
+
+            // ────────────────────────────────────────────────
+            // 5. LINE_STRIP
+            const linesStripVertices = new Float32Array([
+                -0.5,  0.15, 0.0, 1.0, 0.0,
+                -0.46, 0.15, 0.0, 1.0, 0.0,
+                -0.4,  0.2,  0.0, 1.0, 0.0,
+                -0.37, 0.15, 0.0, 1.0, 0.0,
+                -0.48, 0.2,  0.0, 1.0, 0.0,
+                -0.45, 0.19, 0.0, 1.0, 0.0,
+                -0.42, 0.15, 0.0, 1.0, 0.0
+            ]);
+            const linesStripBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, linesStripBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, linesStripVertices, gl.STATIC_DRAW);
+            gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 20, 0);
+            gl.vertexAttribPointer(colLoc, 3, gl.FLOAT, false, 20, 8);
+            gl.drawArrays(gl.LINE_STRIP, 0, 7);
+
+            // ────────────────────────────────────────────────
+            // 6. LINE_LOOP
+            const lineLoopVertices = new Float32Array([
+                -0.3,  0.25, 1.0, 0.0, 0.0,
+                -0.3,  0.3,  1.0, 0.0, 0.0,
+                -0.25, 0.29, 1.0, 0.0, 0.0,
+                -0.22, 0.25, 1.0, 0.0, 0.0,
+                -0.27, 0.2,  1.0, 0.0, 0.0,
+                -0.28, 0.26, 1.0, 0.0, 0.0
+            ]);
+            const lineLoopBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, lineLoopBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, lineLoopVertices, gl.STATIC_DRAW);
+            gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 20, 0);
+            gl.vertexAttribPointer(colLoc, 3, gl.FLOAT, false, 20, 8);
+            gl.drawArrays(gl.LINE_LOOP, 0, 6);
+
+            // ────────────────────────────────────────────────
+            // 7. POLYGON (контур)
+            const polygonVertices = new Float32Array([
+                -0.15, 0.2,  1.0, 0.0, 0.0,
+                -0.13, 0.3,  1.0, 0.0, 0.0,
+                -0.07, 0.3,  1.0, 0.0, 0.0,
+                -0.05, 0.2,  1.0, 0.0, 0.0,
+                -0.11, 0.22, 1.0, 0.0, 0.0
+            ]);
+            const polygonBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, polygonBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, polygonVertices, gl.STATIC_DRAW);
+            gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 20, 0);
+            gl.vertexAttribPointer(colLoc, 3, gl.FLOAT, false, 20, 8);
+            gl.drawArrays(gl.LINE_LOOP, 0, 5);
+
+            // ────────────────────────────────────────────────
+            // 8. QUADS (контур)
+            const quadsVertices = new Float32Array([
+                0.08, 0.3,  1.0, 0.0, 0.0,
+                0.13, 0.2,  1.0, 0.0, 0.0,
+                0.17, 0.26, 1.0, 0.0, 0.0,
+                0.13, 0.35, 1.0, 0.0, 0.0,
+                0.25, 0.2,  0.0, 1.0, 0.0,
+                0.25, 0.3,  0.0, 1.0, 0.0,
+                0.35, 0.3,  0.0, 1.0, 0.0,
+                0.33, 0.2,  0.0, 1.0, 0.0
+            ]);
+            const quadsBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, quadsBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, quadsVertices, gl.STATIC_DRAW);
+            gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 20, 0);
+            gl.vertexAttribPointer(colLoc, 3, gl.FLOAT, false, 20, 8);
+            gl.drawArrays(gl.LINE_LOOP, 0, 4);
+            gl.drawArrays(gl.LINE_LOOP, 4, 4);
+
+            // ────────────────────────────────────────────────
+            // 9. QUAD_STRIP (контур)
+            const quadStripVertices = new Float32Array([
+                0.4,  0.25, 1.0, 0.0, 0.0,
+                0.4,  0.3,  1.0, 0.0, 0.0,
+                0.43, 0.25, 1.0, 0.0, 0.0,
+                0.43, 0.32, 1.0, 0.0, 0.0,
+                0.45, 0.23, 1.0, 0.0, 0.0,
+                0.47, 0.32, 1.0, 0.0, 0.0,
+                0.5,  0.25, 1.0, 0.0, 0.0,
+                0.5,  0.27, 1.0, 0.0, 0.0
+            ]);
+            const quadStripBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, quadStripBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, quadStripVertices, gl.STATIC_DRAW);
+            gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 20, 0);
+            gl.vertexAttribPointer(colLoc, 3, gl.FLOAT, false, 20, 8);
+            const quadStripIndex = new Uint16Array([
+                0,1, 1,3, 3,2, 2,0,
+                2,3, 3,5, 5,4, 4,2,
+                4,5, 5,7, 7,6, 6,4
+            ]);
+            const quadIndexBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, quadIndexBuffer);
+            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, quadStripIndex, gl.STATIC_DRAW);
+            gl.drawElements(gl.LINES, 24, gl.UNSIGNED_SHORT, 0);
+
+            // ────────────────────────────────────────────────
+            // 10. TRIANGLES — только контур (LINES)
+            const trianglesVertices = new Float32Array([
+                0.55, 0.32, 0.0, 0.0, 1.0,
+                0.56, 0.2,  0.0, 0.0, 1.0,
+                0.59, 0.29, 0.0, 0.0, 1.0,
+                0.59, 0.22, 0.0, 0.0, 1.0,
+                0.62, 0.32, 0.0, 0.0, 1.0,
+                0.65, 0.22, 0.0, 0.0, 1.0,
+                0.69, 0.34, 0.0, 0.0, 1.0,
+                0.7,  0.2,  0.0, 0.0, 1.0,
+                0.65, 0.2,  0.0, 0.0, 1.0
+            ]);
+            const trianglesBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, trianglesBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, trianglesVertices, gl.STATIC_DRAW);
+            gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 20, 0);
+            gl.vertexAttribPointer(colLoc, 3, gl.FLOAT, false, 20, 8);
+            const trianglesIndex = new Uint16Array([
+                0,1, 1,2, 2,0,
+                3,4, 4,5, 5,3,
+                6,7, 7,8, 8,6
+            ]);
+            const triangleIndexBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, triangleIndexBuffer);
+            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, trianglesIndex, gl.STATIC_DRAW);
+            gl.drawElements(gl.LINES, 18, gl.UNSIGNED_SHORT, 0);
+
+            // ────────────────────────────────────────────────
+            // 11. TRIANGLE_STRIP — только контур
+            const triangleStripVertices = new Float32Array([
+                0.75, 0.22, 0.0, 0.0, 1.0,
+                0.78, 0.35, 0.0, 0.0, 1.0,
+                0.81, 0.22, 0.0, 0.0, 1.0,
+                0.84, 0.33, 0.0, 0.0, 1.0,
+                0.87, 0.18, 0.0, 0.0, 1.0,
+                0.89, 0.34, 0.0, 0.0, 1.0
+            ]);
+            const triangleStripBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, triangleStripBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, triangleStripVertices, gl.STATIC_DRAW);
+            gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 20, 0);
+            gl.vertexAttribPointer(colLoc, 3, gl.FLOAT, false, 20, 8);
+            gl.drawArrays(gl.LINE_STRIP, 0, 6);   // ← контур вместо закраски
+
+            // ────────────────────────────────────────────────
+            // 12. TRIANGLE_FAN — только контур
+            const triangleFanVertices = new Float32Array([
+                -0.89, -0.2, 0.0, 1.0, 0.0,
+                -0.98, -0.16,0.0, 1.0, 0.0,
+                -0.96, -0.10,0.0, 1.0, 0.0,
+                -0.92, -0.08,0.0, 1.0, 0.0,
+                -0.85, -0.08,0.0, 1.0, 0.0,
+                -0.75, -0.2, 0.0, 1.0, 0.0
+            ]);
+            const triangleFanBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, triangleFanBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, triangleFanVertices, gl.STATIC_DRAW);
+            gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 20, 0);
+            gl.vertexAttribPointer(colLoc, 3, gl.FLOAT, false, 20, 8);
+            gl.drawArrays(gl.LINE_STRIP, 0, 6);   // ← контур вместо закраски
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
